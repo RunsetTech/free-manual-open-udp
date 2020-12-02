@@ -24,6 +24,7 @@ sudo npm i os-utils
 sudo npm i express-rate-limit
 
 cat > index.js <<EOF
+var os 	= require('os-utils');
 const express = require('express')
 const rateLimit = require("express-rate-limit");
 const app = express()
