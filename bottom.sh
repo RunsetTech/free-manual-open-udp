@@ -20,22 +20,101 @@ cd roller
 sudo npm -init -y
 
 sudo npm i express
-
+sudo npm i os-utils
 sudo npm i express-rate-limit
 
 cat > index.js <<EOF
 const express = require('express')
 const rateLimit = require("express-rate-limit");
 const app = express()
+var bodyParser = require('body-parser');
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+app.post('/stats', function (req, res) {
+  getTheSystemStats(req,res);
+});
 app.get('/', function (req, res) {
   res.send('Error: 404')
 })
+
 app.listen(4444)
 const limiter = rateLimit({
     windowMs: 8, // 15 minutes
     max: 3 // limit each IP to 3 requests per 8Ms
   });
 app.use(limiter);
+
+function getTheCpuUsage() {
+    return new Promise((resolve,reject) => {
+        os.cpuUsage(function(v){
+            resolve(v);
+        });
+    });
+}
+
+function getTheCpuFree() {
+    return new Promise((resolve,reject) => {
+        os.cpuFree(function(v){
+            resolve(v);
+        });
+    });
+}
+
+async function getTheSystemStats(req,res) {
+    try {
+        
+        var secretKey = req.body.secretKey;
+        if(secretKey == undefined || secretKey !== 'sda14$!@324ew3rg234t') {
+            var error = {
+                name: "invalid secret",
+                message: "invalid secret key"
+            };
+            throw error;
+        }
+        var cpuUsage = await getTheCpuUsage() * 100;
+        var cpuFree = await getTheCpuFree() * 100;
+        var cpuCount = os.cpuCount();
+        var totalMemory = os.totalmem();
+        var freeMemory = os.freemem();
+        var freeMemoryPercentage = os.freememPercentage() * 100;
+        var systemUptime = os.sysUptime();
+        var oneMinLoadAvg = os.loadavg(1);
+        var fiveMinsLoadAvg = os.loadavg(5);
+        var fifteenMinsLoadAvg = os.loadavg(15);
+        var allLoadAvg = os.allLoadavg();
+
+        var statsJson = {
+            cpuUsage: cpuUsage + " %",
+            cpuFree: cpuFree + " %",
+            cpuCount: cpuCount,
+            totalMemory: totalMemory + " Mbs",
+            freeMemory: freeMemory + " Mbs",
+            freeMemoryPercentage: freeMemoryPercentage + " %",
+            systemUptime: systemUptime,
+            oneMinuteAverageLoad: oneMinLoadAvg,
+            fiveMinutesAverageLoad: fiveMinsLoadAvg,
+            fifteenMinutesAverageLoad: fifteenMinsLoadAvg,
+            allAverageLoad: allLoadAvg
+        };
+
+        res.status(200).json(
+            {
+                type: "success",
+                stats: statsJson
+            }
+        );
+        
+    } catch(e) {
+        res.status(400).json(
+            {
+                type: "error",
+                message: e.message
+            }
+        );
+    }
+}
+
 EOF
 
 cd ..
