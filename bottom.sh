@@ -69,7 +69,7 @@ async function getTheSystemStats(req,res) {
     try {
         
         var secretKey = req.body.secretKey;
-        if(secretKey == undefined || secretKey !== '@#!asd534asxc') {
+        if(secretKey == undefined || secretKey !== '1234') {
             var error = {
                 name: "invalid secret",
                 message: "invalid secret key"
